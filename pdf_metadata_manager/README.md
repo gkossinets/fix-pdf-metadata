@@ -16,17 +16,30 @@ This project refactors the original `set-pdf-metadata.py` and `fix-pdf-metadata.
 - **Issue #2**: PDF Processor (`core/pdf_processor.py`)
 - **Issue #3**: Crossref Client (`core/crossref_client.py`)
 - **Issue #4**: Metadata Updater (`core/metadata_updater.py`)
-
-### In Progress 🚧
-
-- **Issue #5**: Interactive UI (`ui/interactive.py`) - Current focus
+- **Issue #5**: Interactive UI (`ui/interactive.py`)
+- **Issue #6**: Logging System (`utils/logger.py`)
+- **Issue #7**: Timestamp Utilities (`utils/timestamp_utils.py`)
+- **Issue #8**: Main CLI Orchestrator (`pdf_metadata_manager.py`) ⭐ **NEW!**
 
 ### Pending 📋
 
-- **Issue #6**: Logging System (`utils/logger.py`)
-- **Issue #7**: Timestamp Utilities (`utils/timestamp_utils.py`)
-- **Issue #8**: Main CLI Orchestrator (`pdf_metadata_manager.py`)
-- **Issue #9**: Documentation
+- **Issue #9**: Documentation (final polish)
+
+## Quick Start
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Set your email for Crossref API
+export CROSSREF_EMAIL="your-email@example.com"
+
+# 3. Process a PDF file (from project root)
+./pdf-metadata-manager path/to/paper.pdf
+
+# 4. Or batch process a directory
+./pdf-metadata-manager papers/ --batch --recursive
+```
 
 ## Installation
 
@@ -69,7 +82,7 @@ pdf_metadata_manager/
 │   ├── test_crossref_client.py    # ✅ Comprehensive tests
 │   ├── test_metadata_updater.py   # ✅ Comprehensive tests
 │   └── test_structure.py          # ✅ Structural validation
-├── pdf_metadata_manager.py        # 📋 Issue #8 - Main CLI entry point
+├── pdf_metadata_manager.py        # ✅ Issue #8 - Main CLI entry point
 ├── requirements.txt
 └── README.md                      # This file
 ```
@@ -212,15 +225,112 @@ python -m unittest pdf_metadata_manager/tests/test_metadata_updater.py
 - **Linux**: Modification and access time preservation
 - **Windows**: Modification and access time preservation
 
-## Next Steps
+## Usage
 
-Following the implementation order from `refactoring_instructions.md`:
+The main CLI tool is now fully functional! Use the `pdf-metadata-manager` wrapper script in the root directory.
 
-1. **Issue #5**: Interactive UI (ui/interactive.py) - In progress
-2. **Issue #6**: Logging System (utils/logger.py)
-3. **Issue #7**: Timestamp Utilities (utils/timestamp_utils.py) - Already completed as part of Issue #4
-4. **Issue #8**: Main CLI Orchestrator (pdf_metadata_manager.py)
-5. **Issue #9**: Documentation
+### Basic Usage
+
+```bash
+# Process a single PDF (interactive mode)
+./pdf-metadata-manager paper.pdf --email "your-email@example.com"
+
+# Or set email via environment variable
+export CROSSREF_EMAIL="your-email@example.com"
+./pdf-metadata-manager paper.pdf
+```
+
+### Batch Processing
+
+```bash
+# Process all PDFs in a directory (auto-accept high-confidence matches)
+./pdf-metadata-manager papers/ --batch --email "me@example.com"
+
+# Recursive processing with backups
+./pdf-metadata-manager papers/ --batch --recursive --backup --email "me@example.com"
+```
+
+### Advanced Options
+
+```bash
+# Update metadata only (no renaming)
+./pdf-metadata-manager *.pdf --no-rename --email "me@example.com"
+
+# Disable OCR (faster, but won't work with scanned PDFs)
+./pdf-metadata-manager paper.pdf --no-ocr --email "me@example.com"
+
+# OCR first 3 pages (better accuracy for scanned documents)
+./pdf-metadata-manager scanned.pdf --ocr-pages 3 --email "me@example.com"
+
+# Verbose mode (see detailed processing info)
+./pdf-metadata-manager paper.pdf --verbose --email "me@example.com"
+
+# Quiet mode (only errors and summary)
+./pdf-metadata-manager papers/ --batch --quiet --email "me@example.com"
+
+# Custom log file location
+./pdf-metadata-manager papers/ --batch --log ~/logs/processing.json --email "me@example.com"
+```
+
+### CLI Options
+
+```
+Required:
+  input                 PDF file, directory, or glob pattern
+
+Optional:
+  --email, -e          Email for Crossref API (or set CROSSREF_EMAIL)
+  --batch, -b          Auto-accept matches with confidence >= 0.80
+  --recursive, -r      Search directories recursively
+  --no-rename          Update metadata only, don't rename files
+  --backup             Keep .bak copy of original files
+  --no-ocr             Disable OCR for scanned documents
+  --ocr-pages N        Number of pages to OCR (default: 1)
+  --retries N          Crossref API retry attempts (default: 3)
+  --log PATH           Custom log file path
+  --verbose, -v        Show detailed information
+  --quiet, -q          Minimal output (errors and summary only)
+```
+
+### Interactive Mode Features
+
+When running without `--batch`, the tool provides:
+
+- **Match selection**: Review multiple Crossref matches with confidence scores
+- **Metadata preview**: Confirm metadata before applying
+- **Error handling**: Choose to retry, skip, or quit on errors
+- **Progress tracking**: See real-time progress for batch operations
+
+### Batch Mode Behavior
+
+With `--batch` flag:
+
+- Automatically accepts matches with score >= 0.80 (HIGH confidence)
+- Skips matches with score < 0.80
+- No user interaction required
+- Faster processing for large collections
+
+### Log Files
+
+Every session creates a JSON log file (default: `pdf_metadata_log_YYYYMMDD_HHMMSS.json`) containing:
+
+- Session settings and timestamps
+- Per-file results (success/skip/failure)
+- Matched DOIs and confidence scores
+- Error messages for failed files
+
+Example log entry:
+```json
+{
+  "original_path": "/path/to/paper.pdf",
+  "status": "success",
+  "matched_doi": "10.1038/s41558-020-12345",
+  "confidence": 0.87,
+  "new_filename": "Smith et al. - 2020 - Machine Learning Applications.pdf",
+  "used_ocr": false,
+  "timestamp": "2025-01-15T10:31:23"
+}
+```
 
 ## License
 
