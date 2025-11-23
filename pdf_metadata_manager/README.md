@@ -4,26 +4,9 @@ A robust, modular Python CLI tool for updating PDF metadata from academic source
 
 ## Project Overview
 
-This project refactors the original `set-pdf-metadata.py` and `fix-pdf-metadata.py` scripts into a well-structured, maintainable codebase following Unix philosophy: simple, focused, and composable.
+A well-structured, maintainable codebase following Unix philosophy: simple, focused, and composable.
 
 **Goal**: Process academic PDF files by extracting metadata, searching Crossref API, presenting matches for user confirmation, updating PDF metadata, and renaming files in Zotero format.
-
-## Project Status
-
-### Completed Components ✅
-
-- **Issue #1**: Filename Parser (`core/filename_parser.py`)
-- **Issue #2**: PDF Processor (`core/pdf_processor.py`)
-- **Issue #3**: Crossref Client (`core/crossref_client.py`)
-- **Issue #4**: Metadata Updater (`core/metadata_updater.py`)
-- **Issue #5**: Interactive UI (`ui/interactive.py`)
-- **Issue #6**: Logging System (`utils/logger.py`)
-- **Issue #7**: Timestamp Utilities (`utils/timestamp_utils.py`)
-- **Issue #8**: Main CLI Orchestrator (`pdf_metadata_manager.py`) ⭐ **NEW!**
-
-### Completed ✅
-
-All issues (#1-#9) are now complete!
 
 ## Quick Start
 
@@ -64,32 +47,32 @@ pdf_metadata_manager/
 ├── __init__.py
 ├── core/
 │   ├── __init__.py
-│   ├── filename_parser.py         # ✅ Issue #1 - Parse filename hints
-│   ├── pdf_processor.py           # ✅ Issue #2 - Extract text/metadata/DOI
-│   ├── crossref_client.py         # ✅ Issue #3 - Crossref API client
-│   └── metadata_updater.py        # ✅ Issue #4 - Update PDF metadata
+│   ├── filename_parser.py         # Parse filename hints
+│   ├── pdf_processor.py           # Extract text/metadata/DOI
+│   ├── crossref_client.py         # Crossref API client
+│   └── metadata_updater.py        # Update PDF metadata
 ├── ui/
 │   ├── __init__.py
-│   └── interactive.py             # 🚧 Issue #5 - Interactive prompts
+│   └── interactive.py             # Interactive prompts
 ├── utils/
 │   ├── __init__.py
-│   ├── timestamp_utils.py         # ✅ Used by Issue #4
-│   └── logger.py                  # 📋 Issue #6 - JSON logging
+│   ├── timestamp_utils.py         # Cross-platform timestamp preservation
+│   └── logger.py                  # JSON logging
 ├── tests/
 │   ├── __init__.py
-│   ├── test_filename_parser.py    # ✅ Comprehensive tests
-│   ├── test_pdf_processor.py      # ✅ Comprehensive tests
-│   ├── test_crossref_client.py    # ✅ Comprehensive tests
-│   ├── test_metadata_updater.py   # ✅ Comprehensive tests
-│   └── test_structure.py          # ✅ Structural validation
-├── pdf_metadata_manager.py        # ✅ Issue #8 - Main CLI entry point
+│   ├── test_filename_parser.py    # Comprehensive tests
+│   ├── test_pdf_processor.py      # Comprehensive tests
+│   ├── test_crossref_client.py    # Comprehensive tests
+│   ├── test_metadata_updater.py   # Comprehensive tests
+│   └── test_structure.py          # Structural validation
+├── pdf_metadata_manager.py        # Main CLI entry point
 ├── requirements.txt
 └── README.md                      # This file
 ```
 
-## Completed Features
+## Features
 
-### Issue #1: Filename Parser ✅
+### Filename Parser
 
 Extracts author, year, and title hints from various filename formats.
 
@@ -105,7 +88,7 @@ hints = parse_filename("Smith - 2020 - Machine Learning.pdf")
 - Confidence scoring (0.0 to 1.0)
 - Handles edge cases (special chars, unicode, long names)
 
-### Issue #2: PDF Processor ✅
+### PDF Processor
 
 Extracts text, metadata, and DOIs from PDF files with OCR fallback.
 
@@ -127,7 +110,7 @@ print(f"Authors: {metadata.authors}")
 - Academic metadata extraction (title, authors, journal)
 - Robust error handling
 
-### Issue #3: Crossref Client ✅
+### Crossref Client
 
 Robust Crossref API client with retry logic and improved scoring.
 
@@ -154,7 +137,7 @@ for match in matches:
 - Rate limiting (0.5s minimum between requests)
 - Polite pool usage
 
-### Issue #4: Metadata Updater ✅
+### Metadata Updater
 
 Updates PDF metadata and renames files with timestamp preservation.
 
@@ -212,12 +195,12 @@ python -m unittest pdf_metadata_manager/tests/test_metadata_updater.py
 
 ## Code Quality
 
-- ✅ Full type hints on all public APIs
-- ✅ Comprehensive docstrings (Google style)
-- ✅ Specific exception types with clear messages
-- ✅ PEP 8 compliant
-- ✅ No silent failures
-- ✅ Extensive unit test coverage
+- Full type hints on all public APIs
+- Comprehensive docstrings (Google style)
+- Specific exception types with clear messages
+- PEP 8 compliant
+- No silent failures
+- Extensive unit test coverage
 
 ## Platform Support
 
@@ -355,5 +338,3 @@ We welcome contributions! See the main [README.md](../README.md#contributing) fo
 - Coding standards
 - Testing requirements
 - Areas for contribution
-
-For architecture details, consult [`../refactoring_instructions.md`](../refactoring_instructions.md).
