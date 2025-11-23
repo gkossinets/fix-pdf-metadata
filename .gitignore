@@ -55,5 +55,12 @@ env/
 .coverage
 htmlcov/
 
+# Backups
+*.bak
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
 # Logs
 *.log
