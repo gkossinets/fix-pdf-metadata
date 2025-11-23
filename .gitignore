@@ -1,26 +1,10 @@
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-*.egg
-*.egg-info/
-dist/
-build/
-.pytest_cache/
-.coverage
-htmlcov/
-.venv/
-venv/
-ENV/
-.vscode/
-.idea/
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
+*.pyo
+*.pyd
 .Python
 build/
 develop-eggs/
@@ -40,6 +24,7 @@ wheels/
 
 # Virtual environments
 venv/
+.venv/
 ENV/
 env/
 
@@ -62,5 +47,6 @@ htmlcov/
 # OS
 .DS_Store
 Thumbs.db
+
 # Logs
 *.log
