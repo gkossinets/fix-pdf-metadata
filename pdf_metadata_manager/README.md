@@ -21,9 +21,9 @@ This project refactors the original `set-pdf-metadata.py` and `fix-pdf-metadata.
 - **Issue #7**: Timestamp Utilities (`utils/timestamp_utils.py`)
 - **Issue #8**: Main CLI Orchestrator (`pdf_metadata_manager.py`) ⭐ **NEW!**
 
-### Pending 📋
+### Completed ✅
 
-- **Issue #9**: Documentation (final polish)
+All issues (#1-#9) are now complete!
 
 ## Quick Start
 
@@ -332,10 +332,28 @@ Example log entry:
 }
 ```
 
+## Troubleshooting
+
+See the main [README.md](../README.md#troubleshooting) for comprehensive troubleshooting guides including:
+
+- Dependency installation issues
+- OCR and Tesseract problems
+- Crossref API connection errors
+- Permission and file access issues
+- Platform-specific considerations
+
 ## License
 
-(To be determined)
+MIT License - See [LICENSE](../README.md#license) for full text.
 
 ## Contributing
 
-See `refactoring_instructions.md` for detailed implementation guidelines.
+We welcome contributions! See the main [README.md](../README.md#contributing) for:
+
+- How to contribute
+- Development setup
+- Coding standards
+- Testing requirements
+- Areas for contribution
+
+For architecture details, consult [`../refactoring_instructions.md`](../refactoring_instructions.md).
