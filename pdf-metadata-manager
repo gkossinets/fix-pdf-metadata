@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+"""
+Wrapper script to run PDF Metadata Manager CLI.
+"""
+
+import sys
+from pathlib import Path
+
+# Add package directory to path
+package_dir = Path(__file__).parent / 'pdf_metadata_manager'
+sys.path.insert(0, str(package_dir.parent))
+
+# Import and run
+from pdf_metadata_manager.pdf_metadata_manager import main
+
+if __name__ == '__main__':
+    main()
