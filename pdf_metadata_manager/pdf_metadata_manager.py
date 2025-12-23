@@ -109,6 +109,9 @@ class PDFMetadataManager:
             'completed', 'skipped', or 'failed'
         """
         try:
+            # Convert to absolute path to avoid issues with relative paths
+            pdf_path = str(Path(pdf_path).resolve())
+
             if not self.ui.quiet:
                 print(f"\n{'='*60}")
                 print(f"Processing: {Path(pdf_path).name}")
