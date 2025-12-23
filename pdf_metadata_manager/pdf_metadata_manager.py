@@ -196,9 +196,24 @@ class PDFMetadataManager:
                     filename_hints
                 )
 
+                # Handle special return values from display_matches
                 if selected_match is None:
                     self.logger.log_skip(pdf_path, "User skipped")
                     return 'skipped'
+                elif selected_match == 'retry':
+                    # User requested retry - recursive call
+                    return self.process_single_pdf(pdf_path)
+                elif isinstance(selected_match, tuple) and selected_match[0] == 'manual':
+                    # User entered manual DOI
+                    manual_doi = selected_match[1]
+                    try:
+                        metadata_dict = self.crossref_client.fetch_metadata(manual_doi)
+                        selected_match = self._metadata_dict_to_match(metadata_dict, 1.0)
+                    except (CrossrefConnectionError, CrossrefAPIError) as e:
+                        if not self.ui.quiet:
+                            print(f"❌ Failed to fetch metadata for DOI: {e}")
+                        self.logger.log_failure(pdf_path, f"Invalid DOI: {manual_doi}")
+                        return 'failed'
 
             # Step 5: Prepare metadata update
             metadata_update = self._match_to_metadata_update(selected_match)
@@ -317,27 +332,52 @@ class PDFMetadataManager:
             return 'failed'
 
     def _metadata_dict_to_match(self, metadata: dict, score: float) -> CrossrefMatch:
-        """Convert Crossref metadata dict to CrossrefMatch."""
+        """Convert Crossref metadata dict to CrossrefMatch.
+
+        Handles both:
+        - Raw Crossref API responses (uppercase 'DOI', 'author' as list of dicts)
+        - Processed metadata from fetch_metadata() (lowercase 'doi', 'authors' as list of strings)
+        """
         authors = []
-        if 'author' in metadata:
+
+        # Handle both raw API format and processed format
+        if 'authors' in metadata and isinstance(metadata['authors'], list):
+            # Processed format: already a list of formatted strings
+            authors = metadata['authors']
+        elif 'author' in metadata:
+            # Raw API format: list of author dictionaries
             for author in metadata['author']:
                 if 'family' in author:
                     given = author.get('given', '')
                     authors.append(f"{author['family']}, {given}" if given else author['family'])
 
         year = None
-        if 'published-print' in metadata:
+        if 'year' in metadata:
+            # Processed format
+            year = metadata['year']
+        elif 'published-print' in metadata:
             year = str(metadata['published-print']['date-parts'][0][0])
         elif 'published-online' in metadata:
             year = str(metadata['published-online']['date-parts'][0][0])
 
         journal = None
-        if 'container-title' in metadata and metadata['container-title']:
+        if 'journal' in metadata:
+            # Processed format
+            journal = metadata['journal']
+        elif 'container-title' in metadata and metadata['container-title']:
             journal = metadata['container-title'][0]
 
+        # Handle both 'doi' and 'DOI' keys
+        doi = metadata.get('doi') or metadata.get('DOI', '')
+
+        # Handle both title formats
+        title = metadata.get('title', '')
+        if isinstance(title, list):
+            title = title[0] if title else ''
+
         return CrossrefMatch(
-            doi=metadata.get('DOI', ''),
-            title=metadata.get('title', [''])[0] if isinstance(metadata.get('title'), list) else metadata.get('title', ''),
+            doi=doi,
+            title=title,
             authors=authors,
             year=year,
             journal=journal,
