@@ -254,7 +254,11 @@ class CrossrefClient:
     def _extract_year(self, item: Dict[str, Any]) -> Optional[str]:
         """Extract publication year from Crossref item."""
         # Try different date fields in order of preference
-        for date_field in ['published-print', 'published-online', 'created']:
+        # 'issued' is the standard publication date in Crossref and covers
+        # records that lack 'published-print'/'published-online' (e.g. books,
+        # conference papers, older articles). 'created' is the Crossref
+        # registration date and is only used as a last resort.
+        for date_field in ['published-print', 'published-online', 'issued', 'created']:
             if date_field in item and 'date-parts' in item[date_field]:
                 date_parts = item[date_field]['date-parts']
                 if date_parts and len(date_parts) > 0 and len(date_parts[0]) > 0:

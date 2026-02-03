@@ -389,6 +389,8 @@ class PDFMetadataManager:
             year = str(metadata['published-print']['date-parts'][0][0])
         elif 'published-online' in metadata:
             year = str(metadata['published-online']['date-parts'][0][0])
+        elif 'issued' in metadata:
+            year = str(metadata['issued']['date-parts'][0][0])
 
         journal = None
         if 'journal' in metadata:
