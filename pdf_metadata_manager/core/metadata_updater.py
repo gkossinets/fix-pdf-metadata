@@ -63,6 +63,75 @@ class MetadataUpdater:
         """
         self.keep_backup = keep_backup
 
+    def read_metadata(self, pdf_path: str) -> MetadataUpdate:
+        """
+        Read current metadata from PDF docinfo fields.
+
+        Reads the same fields that update_metadata() writes, so the output
+        can be compared directly with a MetadataUpdate to be applied.
+
+        Args:
+            pdf_path: Path to PDF file
+
+        Returns:
+            MetadataUpdate with current values (empty strings for missing fields)
+        """
+        title = ''
+        authors = ''
+        year = None
+        journal = None
+        doi = None
+        isbn = None
+
+        try:
+            with pikepdf.open(pdf_path) as pdf:
+                docinfo = pdf.docinfo if hasattr(pdf, 'docinfo') and pdf.docinfo else {}
+
+                if '/Title' in docinfo:
+                    title = str(docinfo['/Title'])
+
+                if '/Author' in docinfo:
+                    authors = str(docinfo['/Author'])
+
+                if '/CreationDate' in docinfo:
+                    date_str = str(docinfo['/CreationDate'])
+                    # Parse year from "D:YYYYMMDDHHMMSSZ" format
+                    match = re.match(r'D:(\d{4})', date_str)
+                    if match:
+                        year = match.group(1)
+
+                if '/Subject' in docinfo:
+                    subject = str(docinfo['/Subject'])
+                    # Subject format: "Journal | DOI: 10.xxx" or "Journal | ISBN: xxx"
+                    parts = [p.strip() for p in subject.split(' | ')]
+                    for part in parts:
+                        if part.startswith('DOI: '):
+                            doi = part[5:]
+                        elif part.startswith('ISBN: '):
+                            isbn = part[6:]
+                        else:
+                            journal = part
+
+                # Also check Keywords for DOI/ISBN if not found in Subject
+                if '/Keywords' in docinfo and not doi and not isbn:
+                    keywords = str(docinfo['/Keywords'])
+                    if keywords.startswith('DOI: '):
+                        doi = keywords[5:]
+                    elif keywords.startswith('ISBN: '):
+                        isbn = keywords[6:]
+
+        except Exception:
+            pass  # Return empty metadata on any read error
+
+        return MetadataUpdate(
+            title=title,
+            authors=authors,
+            year=year,
+            journal=journal,
+            doi=doi,
+            isbn=isbn
+        )
+
     def update_metadata(
         self,
         pdf_path: str,

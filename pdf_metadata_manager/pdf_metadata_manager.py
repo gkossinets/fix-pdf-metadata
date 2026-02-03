@@ -146,14 +146,17 @@ class PDFMetadataManager:
                 print(f"Extracted title: {pdf_metadata.title or 'Not found'}")
                 print(f"Used OCR: {pdf_metadata.used_ocr}")
 
-            # Display current metadata from the PDF
+            # Display current PDF docinfo metadata (same fields we will update)
             if not self.ui.quiet:
+                current = self.metadata_updater.read_metadata(pdf_path)
                 print("\nCurrent PDF metadata:")
-                print(f"  Title:   {pdf_metadata.title or '(none)'}")
-                print(f"  Authors: {pdf_metadata.authors or '(none)'}")
-                print(f"  Year:    {pdf_metadata.year or '(none)'}")
-                print(f"  Journal: {pdf_metadata.journal or '(none)'}")
-                print(f"  DOI:     {pdf_metadata.doi or '(none)'}")
+                print(f"  Title:   {current.title or '(none)'}")
+                print(f"  Authors: {current.authors or '(none)'}")
+                print(f"  Year:    {current.year or '(none)'}")
+                print(f"  Journal: {current.journal or '(none)'}")
+                print(f"  DOI:     {current.doi or '(none)'}")
+                if current.isbn:
+                    print(f"  ISBN:    {current.isbn}")
                 print()
 
             # Step 3: Search Crossref
