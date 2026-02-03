@@ -86,7 +86,11 @@ class InteractiveUI:
             filename_hints: Parsed filename information
 
         Returns:
-            Selected CrossrefMatch, or None if skipped/quit
+            - Selected CrossrefMatch if user picks a numbered option
+            - None if user skips
+            - 'retry' if user wants to retry search
+            - ('manual', doi) if user enters a manual DOI
+            - 'from_filename' if user chooses to use filename metadata
 
         Raises:
             UserQuitError: If user chooses to quit
@@ -139,10 +143,26 @@ class InteractiveUI:
             print(f"   DOI: {match.doi}")
             print()
 
+        # Show filename-based metadata option if we have usable hints
+        has_filename_option = (
+            filename_hints.confidence >= 0.5 and
+            (filename_hints.author or filename_hints.title)
+        )
+
+        if has_filename_option:
+            print("Metadata from filename (no DOI):")
+            print(f"   Title:   {filename_hints.title or '(not found)'}")
+            print(f"   Author:  {filename_hints.author or '(not found)'}")
+            print(f"   Year:    {filename_hints.year or '(not found)'}")
+            print()
+
         # Get user choice
         while True:
             try:
-                prompt = f"Choose: [1-{len(matches)}] Select match | [s]kip | [r]etry | [m]anual DOI | [q]uit\n> "
+                if has_filename_option:
+                    prompt = f"Choose: [1-{len(matches)}] Select match | [s]kip | [r]etry | [m]anual DOI | [f]rom filename | [q]uit\n> "
+                else:
+                    prompt = f"Choose: [1-{len(matches)}] Select match | [s]kip | [r]etry | [m]anual DOI | [q]uit\n> "
                 choice = input(prompt).strip().lower()
 
                 if choice == 'q':
@@ -161,6 +181,12 @@ class InteractiveUI:
                     else:
                         print("No DOI entered, skipping...")
                         return None
+                elif choice == 'f':
+                    if has_filename_option:
+                        # Return a marker for using filename metadata
+                        return 'from_filename'  # type: ignore
+                    else:
+                        print("Filename doesn't contain enough metadata. Use a different option.")
                 else:
                     # Try to parse as number
                     try:

@@ -38,7 +38,7 @@ class PDFMetadataManager:
 
     def __init__(
         self,
-        email: str,
+        email: Optional[str] = None,
         use_ocr: bool = True,
         ocr_pages: int = 1,
         keep_backup: bool = False,
@@ -47,13 +47,14 @@ class PDFMetadataManager:
         quiet: bool = False,
         batch_mode: bool = False,
         rename: bool = True,
-        log_path: Optional[str] = None
+        log_path: Optional[str] = None,
+        from_filename: bool = False
     ):
         """
         Initialize PDF Metadata Manager.
 
         Args:
-            email: Email for Crossref API (polite pool)
+            email: Email for Crossref API (polite pool), not required for --from-filename
             use_ocr: Enable OCR fallback for scanned documents
             ocr_pages: Number of pages to OCR (default: 1)
             keep_backup: Keep .bak copy of original files
@@ -63,9 +64,11 @@ class PDFMetadataManager:
             batch_mode: Auto-accept high-confidence matches
             rename: Rename files to Zotero format
             log_path: Custom log file path
+            from_filename: Extract metadata from Zotero-style filename (skip Crossref)
         """
         self.batch_mode = batch_mode
         self.rename = rename
+        self.from_filename = from_filename
 
         # Initialize components
         self.pdf_processor = PDFProcessor(
@@ -73,10 +76,14 @@ class PDFMetadataManager:
             ocr_pages=ocr_pages,
             verbose=verbose
         )
-        self.crossref_client = CrossrefClient(
-            email=email,
-            retries=retries
-        )
+        # Only initialize Crossref client if not using from_filename mode
+        if not from_filename and email:
+            self.crossref_client = CrossrefClient(
+                email=email,
+                retries=retries
+            )
+        else:
+            self.crossref_client = None
         self.metadata_updater = MetadataUpdater(keep_backup=keep_backup)
         self.ui = InteractiveUI(verbose=verbose, quiet=quiet)
 
@@ -124,6 +131,10 @@ class PDFMetadataManager:
                 print(f"\nFilename hints: author={filename_hints.author}, "
                       f"year={filename_hints.year}, confidence={filename_hints.confidence:.2f}")
 
+            # Handle --from-filename mode: extract metadata from filename only
+            if self.from_filename:
+                return self._process_from_filename(pdf_path, filename_hints)
+
             # Step 2: Extract PDF metadata
             if not self.ui.quiet:
                 print("Extracting PDF metadata...")
@@ -134,6 +145,16 @@ class PDFMetadataManager:
                 print(f"Extracted DOI: {pdf_metadata.doi or 'Not found'}")
                 print(f"Extracted title: {pdf_metadata.title or 'Not found'}")
                 print(f"Used OCR: {pdf_metadata.used_ocr}")
+
+            # Display current metadata from the PDF
+            if not self.ui.quiet:
+                print("\nCurrent PDF metadata:")
+                print(f"  Title:   {pdf_metadata.title or '(none)'}")
+                print(f"  Authors: {pdf_metadata.authors or '(none)'}")
+                print(f"  Year:    {pdf_metadata.year or '(none)'}")
+                print(f"  Journal: {pdf_metadata.journal or '(none)'}")
+                print(f"  DOI:     {pdf_metadata.doi or '(none)'}")
+                print()
 
             # Step 3: Search Crossref
             if not self.ui.quiet:
@@ -206,6 +227,9 @@ class PDFMetadataManager:
                 elif selected_match == 'retry':
                     # User requested retry - recursive call
                     return self.process_single_pdf(pdf_path)
+                elif selected_match == 'from_filename':
+                    # User chose to use metadata from filename
+                    return self._process_from_filename(pdf_path, filename_hints)
                 elif isinstance(selected_match, tuple) and selected_match[0] == 'manual':
                     # User entered manual DOI
                     manual_doi = selected_match[1]
@@ -397,6 +421,124 @@ class PDFMetadataManager:
             doi=match.doi
         )
 
+    def _process_from_filename(self, pdf_path: str, filename_hints: FilenameHints) -> str:
+        """
+        Process a PDF using metadata extracted from its filename.
+
+        This mode is used with --from-filename to set PDF metadata based on
+        Zotero-style filenames without querying Crossref.
+
+        Args:
+            pdf_path: Path to the PDF file
+            filename_hints: Parsed hints from the filename
+
+        Returns:
+            'completed', 'skipped', or 'failed'
+        """
+        # Check if filename parsing was successful
+        if filename_hints.confidence < 0.5:
+            if not self.ui.quiet:
+                print(f"⚠️  Filename doesn't match expected format (confidence: {filename_hints.confidence:.2f})")
+                print(f"   Expected format: 'Author - Year - Title.pdf'")
+            self.logger.log_skip(pdf_path, f"Filename format not recognized (confidence: {filename_hints.confidence:.2f})")
+            return 'skipped'
+
+        # Check for required fields
+        missing_fields = []
+        if not filename_hints.author:
+            missing_fields.append('author')
+        if not filename_hints.year:
+            missing_fields.append('year')
+        if not filename_hints.title:
+            missing_fields.append('title')
+
+        if missing_fields and not self.batch_mode:
+            if not self.ui.quiet:
+                print(f"⚠️  Missing fields from filename: {', '.join(missing_fields)}")
+
+        # Create metadata update from filename hints
+        metadata_update = MetadataUpdate(
+            title=filename_hints.title or '',
+            authors=filename_hints.author or '',
+            year=filename_hints.year,
+            journal=None,  # Not available from filename
+            doi=None       # Not available from filename
+        )
+
+        if not self.ui.quiet:
+            print(f"\nMetadata from filename:")
+            print(f"  Title:  {metadata_update.title or '(not found)'}")
+            print(f"  Author: {metadata_update.authors or '(not found)'}")
+            print(f"  Year:   {metadata_update.year or '(not found)'}")
+
+        # In interactive mode, confirm before applying
+        if not self.batch_mode:
+            # Generate new filename if renaming is enabled
+            if self.rename:
+                new_filename = self.metadata_updater.generate_zotero_filename(
+                    metadata_update,
+                    pdf_path
+                )
+            else:
+                new_filename = Path(pdf_path).name
+
+            confirmed = self.ui.confirm_metadata(
+                Path(pdf_path).name,
+                metadata_update,
+                new_filename
+            )
+
+            if not confirmed:
+                self.logger.log_skip(pdf_path, "User declined metadata")
+                return 'skipped'
+
+        # Update PDF metadata
+        if not self.ui.quiet:
+            print("Updating PDF metadata...")
+
+        try:
+            self.metadata_updater.update_metadata(pdf_path, metadata_update)
+        except (PDFUpdateError, FileOperationError) as e:
+            if not self.ui.quiet:
+                print(f"❌ Error updating metadata: {e}")
+            self.logger.log_failure(pdf_path, str(e))
+            return 'failed'
+
+        # Rename file if enabled
+        new_path = pdf_path
+        if self.rename:
+            new_filename = self.metadata_updater.generate_zotero_filename(
+                metadata_update,
+                pdf_path
+            )
+            if not self.ui.quiet:
+                print(f"Renaming to: {new_filename}")
+
+            try:
+                new_path = self.metadata_updater.rename_file(
+                    pdf_path,
+                    new_filename
+                )
+            except (FileOperationError, FileNotFoundError) as e:
+                if not self.ui.quiet:
+                    print(f"❌ Error renaming file: {e}")
+                self.logger.log_failure(pdf_path, str(e))
+                return 'failed'
+
+        # Log success
+        self.logger.log_success(
+            original_path=pdf_path,
+            new_path=new_path,
+            doi=None,  # No DOI in from-filename mode
+            confidence=filename_hints.confidence,
+            used_ocr=False
+        )
+
+        if not self.ui.quiet:
+            print(f"✓ Successfully processed")
+
+        return 'completed'
+
     def process_files(self, files: List[str]) -> None:
         """
         Process multiple PDF files.
@@ -480,7 +622,8 @@ Examples:
   %(prog)s paper.pdf --email "me@example.com"
   %(prog)s papers/ --batch --backup --recursive
   %(prog)s *.pdf --no-rename --email "me@example.com"
-  %(prog)s input/ -o organized/ --recursive --email "me@example.com"
+  %(prog)s "Smith - 2020 - Title.pdf" --from-filename
+  %(prog)s papers/ --from-filename --batch
 
 Environment Variables:
   CROSSREF_EMAIL    Email for Crossref API (can be used instead of --email)
@@ -515,6 +658,12 @@ Environment Variables:
         '--no-rename',
         action='store_true',
         help='Do not rename files (only update metadata)'
+    )
+
+    parser.add_argument(
+        '--from-filename',
+        action='store_true',
+        help='Set metadata from Zotero-style filename (Author - Year - Title.pdf). Skips Crossref lookup.'
     )
 
     parser.add_argument(
@@ -573,15 +722,17 @@ def validate_config(args: argparse.Namespace) -> Tuple[bool, Optional[str]]:
     Returns:
         Tuple of (valid, error_message)
     """
-    # Check for email
-    if not args.email:
-        args.email = os.environ.get('CROSSREF_EMAIL')
-
+    # Check for email (not required for --from-filename mode)
+    if not args.from_filename:
         if not args.email:
-            return False, (
-                "Error: Email required for Crossref API.\n"
-                "Provide via --email or set CROSSREF_EMAIL environment variable."
-            )
+            args.email = os.environ.get('CROSSREF_EMAIL')
+
+            if not args.email:
+                return False, (
+                    "Error: Email required for Crossref API.\n"
+                    "Provide via --email or set CROSSREF_EMAIL environment variable.\n"
+                    "Or use --from-filename to set metadata from the filename without Crossref."
+                )
 
     # Check input exists
     input_path = Path(args.input)
@@ -627,7 +778,8 @@ def main():
         quiet=args.quiet,
         batch_mode=args.batch,
         rename=not args.no_rename,
-        log_path=args.log
+        log_path=args.log,
+        from_filename=args.from_filename
     )
 
     # Set up signal handler for graceful shutdown
