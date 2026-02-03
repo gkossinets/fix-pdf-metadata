@@ -296,6 +296,19 @@ class MetadataUpdater:
                         elif metadata.isbn:
                             xmp_meta['dc:identifier'] = metadata.isbn
 
+                        # Set XMP date — the open_metadata() context manager
+                        # syncs XMP with docinfo on exit and drops docinfo
+                        # fields that have no XMP counterpart, so CreationDate
+                        # and Keywords must also be set as XMP properties.
+                        if metadata.year:
+                            xmp_meta['xmp:CreateDate'] = f"{metadata.year}-01-01T00:00:00Z"
+
+                        # Set XMP keywords (mirrors docinfo /Keywords)
+                        if metadata.doi:
+                            xmp_meta['pdf:Keywords'] = f"DOI: {metadata.doi}"
+                        elif metadata.isbn:
+                            xmp_meta['pdf:Keywords'] = f"ISBN: {metadata.isbn}"
+
                 except Exception as xmp_error:
                     print(f"  Warning: Could not update XMP metadata: {xmp_error}")
 

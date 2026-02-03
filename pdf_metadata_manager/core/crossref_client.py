@@ -233,8 +233,12 @@ class CrossrefClient:
                 if item_year == year:
                     score += 0.2
                 # ±1 year tolerance
-                elif abs(int(item_year) - int(year)) == 1:
-                    score += 0.1
+                else:
+                    try:
+                        if abs(int(item_year) - int(year)) == 1:
+                            score += 0.1
+                    except ValueError:
+                        pass
 
         # Author match (weight: 0.2)
         if author and 'author' in item and item['author']:
@@ -262,7 +266,13 @@ class CrossrefClient:
             if date_field in item and 'date-parts' in item[date_field]:
                 date_parts = item[date_field]['date-parts']
                 if date_parts and len(date_parts) > 0 and len(date_parts[0]) > 0:
-                    return str(date_parts[0][0])
+                    year_val = date_parts[0][0]
+                    # Some records have None inside date-parts (e.g. [[None]])
+                    if year_val is not None:
+                        try:
+                            return str(int(year_val))
+                        except (ValueError, TypeError):
+                            continue
         return None
 
     def _extract_authors(self, item: Dict[str, Any]) -> List[str]:
