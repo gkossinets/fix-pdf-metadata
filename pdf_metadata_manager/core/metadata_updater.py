@@ -436,12 +436,24 @@ class MetadataUpdater:
             authors = []
             if metadata.authors:
                 # Split author string by common delimiters
-                author_list = re.split(r'[;,]', metadata.authors)
+                # First split on semicolons, then handle "and"/"&" within each part
+                author_list = []
+                for part in metadata.authors.split(';'):
+                    part = part.strip()
+                    if not part:
+                        continue
+                    # Split on " and " or " & " to handle "Hatfield and Rapson"
+                    sub_parts = re.split(r'\s+and\s+|\s*&\s*', part)
+                    author_list.extend(p.strip() for p in sub_parts if p.strip())
 
                 for author in author_list[:3]:  # Limit to first 3 authors
                     author = author.strip()
-                    if ' ' in author:
-                        # For "Firstname Lastname" format, extract last name
+                    if ',' in author:
+                        # "Last, First" format — take the part before the comma
+                        last_name = author.split(',')[0].strip()
+                        authors.append(last_name)
+                    elif ' ' in author:
+                        # "Firstname Lastname" format — extract last name
                         last_name = author.split()[-1]
                         authors.append(last_name)
                     else:
