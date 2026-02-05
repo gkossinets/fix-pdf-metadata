@@ -434,11 +434,19 @@ class MetadataUpdater:
 
             # Extract authors
             authors = []
+            has_et_al = False
             if metadata.authors:
-                # Split author string by common delimiters
-                # First split on semicolons, then handle "and"/"&" within each part
+                author_str = metadata.authors
+
+                # Detect and strip "et al." before splitting
+                et_al_match = re.search(r'\bet\s+al\.?', author_str)
+                if et_al_match:
+                    has_et_al = True
+                    author_str = author_str[:et_al_match.start()].rstrip(' ,;')
+
+                # Split on semicolons, then handle "and"/"&" within each part
                 author_list = []
-                for part in metadata.authors.split(';'):
+                for part in author_str.split(';'):
                     part = part.strip()
                     if not part:
                         continue
@@ -464,12 +472,12 @@ class MetadataUpdater:
                 mark_incomplete = True
 
             # Format the author part
-            if len(authors) == 1:
-                author_part = authors[0]
+            if has_et_al or len(authors) >= 3:
+                author_part = f"{authors[0]} et al."
             elif len(authors) == 2:
                 author_part = f"{authors[0]} & {authors[1]}"
             else:
-                author_part = f"{authors[0]} et al."
+                author_part = authors[0]
 
             # Extract year
             year = metadata.year or 'Unknown'
