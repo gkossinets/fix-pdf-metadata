@@ -295,7 +295,7 @@ With `--batch` flag:
 
 ### Log Files
 
-Every session creates a JSON log file (default: `pdf_metadata_log_YYYYMMDD_HHMMSS.json`) containing:
+When you pass `--log PATH`, a JSON log file is written to PATH containing:
 
 - Session settings and timestamps
 - Per-file results (success/skip/failure)

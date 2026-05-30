@@ -26,7 +26,7 @@ export CROSSREF_EMAIL="your-email@example.com"
 4. **Updates PDF metadata** with correct bibliographic information
 5. **Renames files** in Zotero format: "Author - Year - Title.pdf"
 6. **Preserves timestamps** across platforms (macOS, Linux, Windows)
-7. **Logs everything** to JSON for tracking and debugging
+7. **Optional JSON logging** for tracking and debugging (enable with `--log`)
 
 ## Features
 
@@ -34,7 +34,7 @@ export CROSSREF_EMAIL="your-email@example.com"
 - 🎯 **Fuzzy matching** with confidence scores (HIGH/MEDIUM/LOW)
 - 🤖 **Batch mode** for processing large collections automatically
 - 💬 **Interactive mode** for careful, one-by-one review
-- 📝 **Comprehensive logging** in JSON format
+- 📝 **Optional JSON logging** (opt-in via `--log`)
 - 🔄 **Retry logic** for network errors
 - ⚡ **Cross-platform** timestamp preservation
 
@@ -177,7 +177,7 @@ export CROSSREF_EMAIL="your-email@example.com"
 # 3. Show you the top matches with confidence scores
 # 4. Let you confirm before applying changes
 # 5. Update metadata and rename to "Author - Year - Title.pdf"
-# 6. Create a log file with all actions taken
+# 6. Optionally write a JSON log of all actions taken (add --log PATH)
 ```
 
 ### Workflow 2: Clean Up Existing Library
@@ -245,8 +245,8 @@ After a batch run, you want to review the log and retry failed files.
 # First run (batch mode)
 ./pdf-metadata-manager papers/ --batch
 
-# Check the log file
-cat pdf_metadata_log_*.json | jq '.results[] | select(.status=="failed")'
+# Check the log file (only written if you passed --log PATH)
+cat PATH.json | jq '.results[] | select(.status=="failed")'
 
 # Extract failed files and retry interactively
 # (manual step - extract paths from JSON, create a list)
@@ -360,7 +360,7 @@ This is optional - the tool will continue without creation time preservation if 
 
 If you encounter issues not listed here:
 
-1. Check the log file (`pdf_metadata_log_*.json`) for detailed error messages
+1. Re-run with `--log PATH` and check the JSON log for detailed error messages
 2. Run with `--verbose` flag to see detailed processing information
 3. Open an issue on the project repository with:
    - Error message and stack trace

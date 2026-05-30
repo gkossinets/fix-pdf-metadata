@@ -14,16 +14,22 @@ from pdf_metadata_manager.utils.logger import SessionLogger
 class TestSessionLogger:
     """Test SessionLogger functionality."""
 
-    def test_auto_generated_filename(self):
-        """Test that logger auto-generates filename with timestamp."""
+    def test_disabled_by_default(self):
+        """No log file is written when no log path is provided."""
         with tempfile.TemporaryDirectory() as tmpdir:
             os.chdir(tmpdir)
             logger = SessionLogger()
 
-            # Should match format: pdf_metadata_log_YYYYMMDD_HHMMSS.json
-            assert logger.log_path.startswith("pdf_metadata_log_")
-            assert logger.log_path.endswith(".json")
-            assert len(logger.log_path) == len("pdf_metadata_log_YYYYMMDD_HHMMSS.json")
+            assert logger.enabled is False
+            assert logger.log_path is None
+
+            # Results are still tracked in memory.
+            logger.log_success("/p/a.pdf", "/p/b.pdf", "10.1/x", 0.9)
+            logger.close()
+
+            # Closing must not create any log file.
+            assert [f for f in os.listdir(tmpdir) if f.endswith(".json")] == []
+            assert len(logger.results) == 1
 
     def test_custom_log_path(self):
         """Test using custom log path."""
@@ -274,19 +280,19 @@ class TestSessionLogger:
             assert "café_文档.pdf" in result["original_path"]
             assert "Über München.pdf" in result["new_filename"]
 
-    def test_multiple_sessions_different_filenames(self):
-        """Test that multiple loggers create different filenames."""
+    def test_explicit_log_path_is_enabled_and_written(self):
+        """Providing a log path enables writing the file."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            os.chdir(tmpdir)
+            log_path = os.path.join(tmpdir, "session.json")
+            logger = SessionLogger(log_path=log_path)
 
-            logger1 = SessionLogger()
-            # Need to wait 1 second since timestamp has second precision
-            import time
-            time.sleep(1.1)
-            logger2 = SessionLogger()
+            assert logger.enabled is True
+            assert logger.log_path == log_path
 
-            # Filenames should be different (different timestamps)
-            assert logger1.log_path != logger2.log_path
+            logger.log_success("/p/a.pdf", "/p/b.pdf", "10.1/x", 0.9)
+            logger.close()
+
+            assert os.path.exists(log_path)
 
     def test_settings_preservation(self):
         """Test that settings dict is preserved correctly."""

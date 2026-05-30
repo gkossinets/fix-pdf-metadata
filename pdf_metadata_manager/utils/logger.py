@@ -14,24 +14,24 @@ class SessionLogger:
         Initialize logger.
 
         Args:
-            log_path: Custom log file path (default: auto-generate)
+            log_path: Path to write the JSON log to. If None (the default),
+                no log file is written -- results are kept in memory only.
             settings: Settings dict to include in session metadata
         """
         self.start_time = datetime.now()
         self.settings = settings or {}
         self.results: List[Dict[str, Any]] = []
 
-        # Auto-generate log filename if not provided
-        if log_path is None:
-            timestamp = self.start_time.strftime("%Y%m%d_%H%M%S")
-            self.log_path = f"pdf_metadata_log_{timestamp}.json"
-        else:
-            self.log_path = log_path
+        # A log file is written only when an explicit path is given. Logs are
+        # handy for debugging but add clutter in normal use, so they are opt-in.
+        self.enabled = log_path is not None
+        self.log_path = log_path
 
-        # Ensure parent directory exists
-        log_dir = Path(self.log_path).parent
-        if log_dir != Path('.'):
-            log_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure parent directory exists for an explicitly requested log file.
+        if self.enabled:
+            log_dir = Path(self.log_path).parent
+            if log_dir != Path('.'):
+                log_dir.mkdir(parents=True, exist_ok=True)
 
     def log_success(
         self,
@@ -122,7 +122,13 @@ class SessionLogger:
         return stats
 
     def close(self):
-        """Finalize and write log file."""
+        """Finalize and write the log file.
+
+        Does nothing when logging is disabled (no log path was provided).
+        """
+        if not self.enabled:
+            return
+
         end_time = datetime.now()
         stats = self.get_stats()
 

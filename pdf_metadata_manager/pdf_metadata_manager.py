@@ -63,7 +63,7 @@ class PDFMetadataManager:
             quiet: Minimal output (errors and summary only)
             batch_mode: Auto-accept high-confidence matches
             rename: Rename files to Zotero format
-            log_path: Custom log file path
+            log_path: Path to write a JSON session log to (default: no log file)
             from_filename: Extract metadata from Zotero-style filename (skip Crossref)
         """
         self.batch_mode = batch_mode
@@ -200,6 +200,10 @@ class PDFMetadataManager:
 
             # Step 4: Select match (batch or interactive)
             selected_match = None
+            # Whether the user picked a numbered candidate directly from the
+            # list (as opposed to entering a manual DOI). A direct pick is
+            # applied immediately, without a separate confirmation step.
+            selected_directly = False
 
             if self.batch_mode:
                 # Auto-accept if high confidence
@@ -222,6 +226,9 @@ class PDFMetadataManager:
                     Path(pdf_path).name,
                     filename_hints
                 )
+
+                # A CrossrefMatch here means the user chose a numbered option.
+                selected_directly = isinstance(selected_match, CrossrefMatch)
 
                 # Handle special return values from display_matches
                 if selected_match is None:
@@ -257,8 +264,9 @@ class PDFMetadataManager:
             else:
                 new_filename = Path(pdf_path).name
 
-            # Step 6: Confirm (if not batch mode)
-            if not self.batch_mode:
+            # Step 6: Confirm (skip for a direct numbered pick; the user has
+            # already seen the candidate's details in the list)
+            if not self.batch_mode and not selected_directly:
                 confirmed = self.ui.confirm_metadata(
                     Path(pdf_path).name,
                     metadata_update,
@@ -702,7 +710,7 @@ Environment Variables:
     parser.add_argument(
         '--log',
         metavar='PATH',
-        help='Custom log file path (default: auto-generate)'
+        help='Write a JSON session log to PATH (default: no log file)'
     )
 
     parser.add_argument(
